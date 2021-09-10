@@ -45,6 +45,7 @@ import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.net.URI;
 import java.net.URL;
 import java.net.UnknownHostException;
@@ -1283,8 +1284,6 @@ public final class Cluster {
 
             contactPoints.forEach(address -> {
                 final Host host = add(address);
-                if (host != null)
-                    host.makeAvailable();
             });
         }
 
