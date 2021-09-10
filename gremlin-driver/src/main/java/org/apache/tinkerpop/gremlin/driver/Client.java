@@ -19,8 +19,8 @@
 package org.apache.tinkerpop.gremlin.driver;
 
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tinkerpop.gremlin.driver.exception.ConnectionException;
 import org.apache.tinkerpop.gremlin.driver.exception.NoHostAvailableException;
 import org.apache.tinkerpop.gremlin.driver.message.RequestMessage;
@@ -30,7 +30,9 @@ import org.apache.tinkerpop.gremlin.process.traversal.TraversalSource;
 import org.apache.tinkerpop.gremlin.process.traversal.Traverser;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -521,25 +523,31 @@ public abstract class Client {
             // the cost of this single threaded executor here should be fairly small because it is only used once at
             // initialization and shutdown. since users will typically construct a Client once for the life of their
             // application there shouldn't be tons of thread pools being created and destroyed.
-            final BasicThreadFactory threadFactory = new BasicThreadFactory.Builder().namingPattern("gremlin-driver-initializer").build();
+            final BasicThreadFactory threadFactory =
+                    new BasicThreadFactory.Builder().namingPattern("gremlin-driver-initializer").build();
             final ExecutorService hostExecutor = Executors.newSingleThreadExecutor(threadFactory);
 
-            try {
-                CompletableFuture.allOf(cluster.allHosts().stream()
-                        .map(host -> CompletableFuture.runAsync(() -> initializeConnectionSetupForHost.accept(host), hostExecutor))
-                        .toArray(CompletableFuture[]::new))
-                        .join();
-            } catch (CompletionException ex) {
-                Throwable cause;
-                Throwable result = ex;
-                if (null != (cause = ex.getCause())) {
-                    result = cause;
-                }
-
-                logger.error("", result);
-            } finally {
-                hostExecutor.shutdown();
+            // hosts are not marked as available at Cluster initialization, so we are marking hosts as available here
+            // if connection pools can be initialized successfully.
+            final List<Pair<Host, CompletableFuture<Void>>> completableFutures = new ArrayList<>();
+            for (Host host : cluster.allHosts()) {
+                completableFutures.add(new ImmutablePair<>(host,
+                        CompletableFuture.runAsync(() -> initializeConnectionSetupForHost.accept(host), hostExecutor)));
             }
+
+            for (Pair<Host, CompletableFuture<Void>> completableFuture : completableFutures) {
+                try {
+                    completableFuture.getRight().join();
+                    completableFuture.getLeft().makeAvailable();
+                } catch (CompletionException ex) {
+                    Throwable result = ex;
+                    Throwable cause = ex.getCause();
+                    result = cause == null ? result : cause;
+                    logger.error("", result);
+                }
+            }
+
+            hostExecutor.shutdown();
         }
 
         /**
@@ -742,19 +750,42 @@ public abstract class Client {
          */
         @Override
         protected void initializeImplementation() {
-            // chooses an available host at random
-            final List<Host> hosts = cluster.allHosts()
+            // chooses an available host at random from available hosts
+            List<Host> hosts = cluster.allHosts()
                     .stream().filter(Host::isAvailable).collect(Collectors.toList());
-            if (hosts.isEmpty()) throw new IllegalStateException("No available host in the cluster");
+            // if there is no available hosts, check for all hosts
+            if (hosts.isEmpty()) {
+                hosts = new ArrayList<>(cluster.allHosts());
+                if (hosts.isEmpty()) {
+                    throw new IllegalStateException("No available host in the cluster");
+                }
+            }
             Collections.shuffle(hosts);
             final Host host = hosts.get(0);
 
+            // only mark host as available if we can initialize connection pool successfully
+            final CompletableFuture<Void> completableFuture =
+                    CompletableFuture.runAsync(() -> initializeConnectionSetupForHost.accept(host), cluster.executor());
             try {
-                connectionPool = new ConnectionPool(host, this, Optional.of(1), Optional.of(1));
-            } catch (RuntimeException ex) {
-                logger.error("Could not initialize client for {}", host, ex);
+                completableFuture.join();
+                host.makeAvailable();
+            } catch (CompletionException ex) {
+                Throwable result = ex;
+                Throwable cause = ex.getCause();
+                result = cause == null ? result : cause;
+                logger.error("", result);
             }
         }
+
+        private Consumer<Host> initializeConnectionSetupForHost = host -> {
+            try {
+                // hosts that don't initialize connection pools will come up as a dead host
+                connectionPool = new ConnectionPool(host, this, Optional.of(1), Optional.of(1));
+            } catch (RuntimeException ex) {
+                final String errMsg = "Could not initialize client for " + host;
+                throw new RuntimeException(errMsg, ex);
+            }
+        };
 
         @Override
         public boolean isClosing() {
