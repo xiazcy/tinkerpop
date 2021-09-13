@@ -540,10 +540,7 @@ public abstract class Client {
                     completableFuture.getRight().join();
                     completableFuture.getLeft().makeAvailable();
                 } catch (CompletionException ex) {
-                    Throwable result = ex;
-                    Throwable cause = ex.getCause();
-                    result = cause == null ? result : cause;
-                    logger.error("", result);
+                    logger.error("", (ex.getCause() == null) ? ex : ex.getCause());
                 }
             }
 
@@ -575,8 +572,7 @@ public abstract class Client {
                 // added a new host to the cluster so let the load-balancer know
                 ClusteredClient.this.cluster.loadBalancingStrategy().onNew(host);
             } catch (RuntimeException ex) {
-                final String errMsg = "Could not initialize client for " + host;
-                throw new RuntimeException(errMsg, ex);
+                throw new RuntimeException(String.format("Could not initialize client for %s.", host), ex);
             }
         };
     }
@@ -750,30 +746,25 @@ public abstract class Client {
          */
         @Override
         protected void initializeImplementation() {
-            // chooses an available host at random from available hosts
-            List<Host> hosts = cluster.allHosts()
-                    .stream().filter(Host::isAvailable).collect(Collectors.toList());
-            // if there is no available hosts, check for all hosts
-            if (hosts.isEmpty()) {
-                hosts = new ArrayList<>(cluster.allHosts());
-                if (hosts.isEmpty()) {
-                    throw new IllegalStateException("No available host in the cluster");
-                }
+            // chooses a host at random from all hosts
+            if (cluster.allHosts().isEmpty()) {
+                throw new IllegalStateException("No available host in the cluster");
             }
-            Collections.shuffle(hosts);
-            final Host host = hosts.get(0);
 
-            // only mark host as available if we can initialize connection pool successfully
+            final List<Host> hosts = new ArrayList<>(cluster.allHosts());
+            Collections.shuffle(hosts);
+            // if a host has been marked as available, use it instead
+            Optional<Host> host = hosts.stream().filter(Host::isAvailable).findFirst();
+            final Host selectedHost = host.orElse(hosts.get(0));
+
+            // only mark host as available if we can initialize the connection pool successfully
             final CompletableFuture<Void> completableFuture =
-                    CompletableFuture.runAsync(() -> initializeConnectionSetupForHost.accept(host), cluster.executor());
+                    CompletableFuture.runAsync(() -> initializeConnectionSetupForHost.accept(selectedHost), cluster.executor());
             try {
                 completableFuture.join();
-                host.makeAvailable();
+                selectedHost.makeAvailable();
             } catch (CompletionException ex) {
-                Throwable result = ex;
-                Throwable cause = ex.getCause();
-                result = cause == null ? result : cause;
-                logger.error("", result);
+                logger.error("", (ex.getCause() == null) ? ex : ex.getCause());
             }
         }
 
@@ -782,8 +773,7 @@ public abstract class Client {
                 // hosts that don't initialize connection pools will come up as a dead host
                 connectionPool = new ConnectionPool(host, this, Optional.of(1), Optional.of(1));
             } catch (RuntimeException ex) {
-                final String errMsg = "Could not initialize client for " + host;
-                throw new RuntimeException(errMsg, ex);
+                throw new RuntimeException(String.format("Could not initialize client for %s.", host), ex);
             }
         };
 

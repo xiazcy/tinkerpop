@@ -1880,18 +1880,22 @@ public class GremlinDriverIntegrateTest extends AbstractGremlinServerIntegration
         assertEquals(100, result1.get().one().getInt());
     }
 
-    @Test
-    public void shouldFailOnInitiallyDeadHost() throws Exception {
-        // Stop server
+    /**
+     * Client created on an initially dead host should fail initially, and recover after the dead host has restarted
+     * @param testClusterClient - boolean flag to test clustered client if true and sessioned client otherwise
+     * @throws Exception
+     */
+    public void testShouldFailOnInitiallyDeadHost(final boolean testClusterClient) throws Exception {
+        logger.info("Stopping server.");
         this.stopServer();
 
         final Cluster cluster = TestClientFactory.build().create();
-        final Client client = cluster.connect();
+        final Client client = testClusterClient? cluster.connect() : cluster.connect("sessionClient");
 
         try {
             // try to re-issue a request now that the server is down
-            System.out.println("SUBMIT 1");
-            client.submit("g").all().get(3000, TimeUnit.MILLISECONDS);
+            logger.info("Verifying driver cannot connect to server.");
+            client.submit("g").all().get(500, TimeUnit.MILLISECONDS);
             fail("Should throw an exception.");
         } catch (RuntimeException re) {
             // Client would have no active connections to the host, hence it would encounter a timeout
@@ -1904,73 +1908,38 @@ public class GremlinDriverIntegrateTest extends AbstractGremlinServerIntegration
             //
 
             // restart server
+            logger.info("Restarting server.");
             this.startServer();
 
             // try a bunch of times to reconnect. on slower systems this may simply take longer...looking at you travis
             for (int ix = 1; ix < 11; ix++) {
                 // the retry interval is 1 second, wait a bit longer
-                TimeUnit.SECONDS.sleep(5);
+                TimeUnit.MILLISECONDS.sleep(1250);
 
                 try {
-                    System.out.println("SUBMIT " + (1 + ix));
+                    logger.info(String.format("Connection driver to server - attempt # %s. ", 1 + ix));
                     final List<Result> results = client.submit("1+1").all().get(3000, TimeUnit.MILLISECONDS);
                     assertEquals(1, results.size());
                     assertEquals(2, results.get(0).getInt());
+                    logger.info("Connection successful.");
                     break;
                 } catch (Exception ex) {
                     if (ix == 10)
                         fail("Should have eventually succeeded");
+                } finally {
+                    cluster.close();
                 }
             }
-        } finally {
-            cluster.close();
         }
     }
 
     @Test
+    public void shouldFailOnInitiallyDeadHostForClusterClient() throws Exception {
+        testShouldFailOnInitiallyDeadHost(true);
+    }
+
+    @Test
     public void shouldFailOnInitiallyDeadHostForSessionClient() throws Exception {
-        // Stop server
-        this.stopServer();
-
-        final Cluster cluster = TestClientFactory.build().create();
-        final Client client = cluster.connect("1");
-
-        try {
-            // try to re-issue a request now that the server is down
-            System.out.println("SUBMIT 1");
-            client.submit("g").all().get(3000, TimeUnit.MILLISECONDS);
-            fail("Should throw an exception.");
-        } catch (RuntimeException re) {
-            // Client would have no active connections to the host, hence it would encounter a timeout
-            // trying to find an alive connection to the host.
-            Throwable foo = re.getCause();
-            assertThat(re.getCause(), instanceOf(NoHostAvailableException.class));
-
-            //
-            // should recover when the server comes back
-            //
-
-            // restart server
-            this.startServer();
-
-            // try a bunch of times to reconnect. on slower systems this may simply take longer...looking at you travis
-            for (int ix = 1; ix < 11; ix++) {
-                // the retry interval is 1 second, wait a bit longer
-                TimeUnit.SECONDS.sleep(5);
-
-                try {
-                    System.out.println("SUBMIT " + (1 + ix));
-                    final List<Result> results = client.submit("1+1").all().get(3000, TimeUnit.MILLISECONDS);
-                    assertEquals(1, results.size());
-                    assertEquals(2, results.get(0).getInt());
-                    break;
-                } catch (Exception ex) {
-                    if (ix == 10)
-                        fail("Should have eventually succeeded");
-                }
-            }
-        } finally {
-            cluster.close();
-        }
+        testShouldFailOnInitiallyDeadHost(false);
     }
 }
