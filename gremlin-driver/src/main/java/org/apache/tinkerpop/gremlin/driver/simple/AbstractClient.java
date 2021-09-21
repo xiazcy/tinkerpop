@@ -39,6 +39,7 @@ import java.util.function.Consumer;
  */
 public abstract class AbstractClient implements SimpleClient {
     protected final CallbackResponseHandler callbackResponseHandler = new CallbackResponseHandler();
+    // changed this from protected to public for the unit test --> find ways to test while this remains protected!
     public final EventLoopGroup group;
 
     public AbstractClient(final String threadPattern) {
