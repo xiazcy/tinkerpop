@@ -40,14 +40,11 @@ import java.util.function.Consumer;
 public abstract class AbstractClient implements SimpleClient {
     protected final CallbackResponseHandler callbackResponseHandler = new CallbackResponseHandler();
     public final EventLoopGroup group;
-    // Checks and uses Epoll if it is available. ref: http://netty.io/wiki/native-transports.html
-    // Subclasses also depend on if Epoll is available or not, so making this protected
-    protected boolean isEpollAvailable;
 
     public AbstractClient(final String threadPattern) {
         final BasicThreadFactory threadFactory = new BasicThreadFactory.Builder().namingPattern(threadPattern).build();
-        this.isEpollAvailable = Epoll.isAvailable();
-        group =  isEpollAvailable? new EpollEventLoopGroup(Runtime.getRuntime().availableProcessors(), threadFactory)
+        // Checks and uses Epoll if it is available. ref: http://netty.io/wiki/native-transports.html
+        group =  Epoll.isAvailable()? new EpollEventLoopGroup(Runtime.getRuntime().availableProcessors(), threadFactory)
                 : new NioEventLoopGroup(Runtime.getRuntime().availableProcessors(), threadFactory);
     }
 

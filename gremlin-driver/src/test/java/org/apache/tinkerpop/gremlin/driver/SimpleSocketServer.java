@@ -38,14 +38,14 @@ public class SimpleSocketServer {
     public static final int PORT = 45940;
     private EventLoopGroup bossGroup;
     private EventLoopGroup workerGroup;
-    private static final boolean isEpollAvailable = Epoll.isAvailable();
 
     public Channel start(final ChannelInitializer<SocketChannel> channelInitializer) throws InterruptedException {
-        bossGroup = isEpollAvailable? new EpollEventLoopGroup(1) : new NioEventLoopGroup(1);
-        workerGroup =  isEpollAvailable? new EpollEventLoopGroup() : new NioEventLoopGroup();
+        // Checks and uses Epoll if it is available. ref: http://netty.io/wiki/native-transports.html
+        bossGroup = Epoll.isAvailable()? new EpollEventLoopGroup(1) : new NioEventLoopGroup(1);
+        workerGroup =  Epoll.isAvailable()? new EpollEventLoopGroup() : new NioEventLoopGroup();
         final ServerBootstrap b = new ServerBootstrap();
         b.group(bossGroup, workerGroup)
-                .channel(isEpollAvailable? EpollServerSocketChannel.class : NioServerSocketChannel.class)
+                .channel(Epoll.isAvailable()? EpollServerSocketChannel.class : NioServerSocketChannel.class)
                 .handler(new LoggingHandler(LogLevel.INFO))
                 .childHandler(channelInitializer);
         return b.bind(PORT).sync().channel();
