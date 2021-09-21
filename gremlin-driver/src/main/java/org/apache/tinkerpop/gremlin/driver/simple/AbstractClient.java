@@ -21,6 +21,8 @@ package org.apache.tinkerpop.gremlin.driver.simple;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.channel.epoll.Epoll;
+import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.apache.tinkerpop.gremlin.driver.message.RequestMessage;
@@ -37,11 +39,16 @@ import java.util.function.Consumer;
  */
 public abstract class AbstractClient implements SimpleClient {
     protected final CallbackResponseHandler callbackResponseHandler = new CallbackResponseHandler();
-    protected final EventLoopGroup group;
+    public final EventLoopGroup group;
+    // Checks and uses Epoll if it is available. ref: http://netty.io/wiki/native-transports.html
+    // Subclasses also depend on if Epoll is available or not, so making this protected
+    protected boolean isEpollAvailable;
 
     public AbstractClient(final String threadPattern) {
         final BasicThreadFactory threadFactory = new BasicThreadFactory.Builder().namingPattern(threadPattern).build();
-        group = new NioEventLoopGroup(Runtime.getRuntime().availableProcessors(), threadFactory);
+        this.isEpollAvailable = Epoll.isAvailable();
+        group =  isEpollAvailable? new EpollEventLoopGroup(Runtime.getRuntime().availableProcessors(), threadFactory)
+                : new NioEventLoopGroup(Runtime.getRuntime().availableProcessors(), threadFactory);
     }
 
     public abstract void writeAndFlush(final RequestMessage requestMessage) throws Exception;

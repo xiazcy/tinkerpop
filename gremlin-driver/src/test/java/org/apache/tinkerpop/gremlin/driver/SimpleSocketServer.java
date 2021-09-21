@@ -22,6 +22,9 @@ import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.EventLoopGroup;
+import io.netty.channel.epoll.Epoll;
+import io.netty.channel.epoll.EpollEventLoopGroup;
+import io.netty.channel.epoll.EpollServerSocketChannel;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
@@ -35,13 +38,14 @@ public class SimpleSocketServer {
     public static final int PORT = 45940;
     private EventLoopGroup bossGroup;
     private EventLoopGroup workerGroup;
+    private static final boolean isEpollAvailable = Epoll.isAvailable();
 
     public Channel start(final ChannelInitializer<SocketChannel> channelInitializer) throws InterruptedException {
-        bossGroup = new NioEventLoopGroup(1);
-        workerGroup = new NioEventLoopGroup();
+        bossGroup = isEpollAvailable? new EpollEventLoopGroup(1) : new NioEventLoopGroup(1);
+        workerGroup =  isEpollAvailable? new EpollEventLoopGroup() : new NioEventLoopGroup();
         final ServerBootstrap b = new ServerBootstrap();
         b.group(bossGroup, workerGroup)
-                .channel(NioServerSocketChannel.class)
+                .channel(isEpollAvailable? EpollServerSocketChannel.class : NioServerSocketChannel.class)
                 .handler(new LoggingHandler(LogLevel.INFO))
                 .childHandler(channelInitializer);
         return b.bind(PORT).sync().channel();

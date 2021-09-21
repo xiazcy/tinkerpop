@@ -18,6 +18,10 @@
  */
 package org.apache.tinkerpop.gremlin.driver;
 
+import io.netty.channel.epoll.Epoll;
+import io.netty.channel.epoll.EpollEventLoopGroup;
+import io.netty.channel.nio.NioEventLoopGroup;
+import org.apache.tinkerpop.gremlin.driver.simple.WebSocketClient;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -30,6 +34,7 @@ import org.apache.tinkerpop.gremlin.driver.ser.Serializers;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.util.Log4jRecordingAppender;
 
+import java.net.URI;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -41,6 +46,7 @@ import static org.hamcrest.core.Is.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class WebSocketClientBehaviorIntegrateTest {
     @Rule
@@ -270,5 +276,15 @@ public class WebSocketClientBehaviorIntegrateTest {
                 recordingAppender.getMessages().stream()
                         .filter(str -> str.contains("Considering new connection on"))
                         .count());
+    }
+
+    @Test
+    public void shouldUseEpollIfAvailable() throws Exception {
+        final WebSocketClient client = new WebSocketClient();
+        if (Epoll.isAvailable()) {
+            assertTrue(client.group instanceof EpollEventLoopGroup);
+        } else {
+            assertTrue(client.group instanceof NioEventLoopGroup);
+        }
     }
 }
