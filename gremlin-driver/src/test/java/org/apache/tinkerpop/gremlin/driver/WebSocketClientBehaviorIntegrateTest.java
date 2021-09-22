@@ -18,6 +18,7 @@
  */
 package org.apache.tinkerpop.gremlin.driver;
 
+import io.netty.channel.EventLoopGroup;
 import io.netty.channel.epoll.Epoll;
 import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -277,13 +278,21 @@ public class WebSocketClientBehaviorIntegrateTest {
                         .count());
     }
 
-    @Test
-    public void shouldUseEpollIfAvailable() throws Exception {
-        final WebSocketClient client = new WebSocketClient();
-        if (Epoll.isAvailable()) {
-            assertTrue(client.group instanceof EpollEventLoopGroup);
-        } else {
-            assertTrue(client.group instanceof NioEventLoopGroup);
+    // A mock client is made here, so we can test the protected field group
+    private class MockClient extends WebSocketClient {
+        EventLoopGroup getEventLoopGroup() {
+            return group;
         }
     }
+
+    @Test
+    public void shouldUseEpollIfAvailable() throws Exception {
+        final MockClient client = new MockClient();
+        if (Epoll.isAvailable()) {
+            assertTrue(client.getEventLoopGroup() instanceof EpollEventLoopGroup);
+        } else {
+            assertTrue(client.getEventLoopGroup() instanceof NioEventLoopGroup);
+        }
+    }
+
 }

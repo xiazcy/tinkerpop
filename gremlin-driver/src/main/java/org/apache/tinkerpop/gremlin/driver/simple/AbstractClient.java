@@ -39,13 +39,12 @@ import java.util.function.Consumer;
  */
 public abstract class AbstractClient implements SimpleClient {
     protected final CallbackResponseHandler callbackResponseHandler = new CallbackResponseHandler();
-    // changed this from protected to public for the unit test --> find ways to test while this remains protected!
-    public final EventLoopGroup group;
+    protected final EventLoopGroup group;
 
     public AbstractClient(final String threadPattern) {
         final BasicThreadFactory threadFactory = new BasicThreadFactory.Builder().namingPattern(threadPattern).build();
         // Checks and uses Epoll if it is available. ref: http://netty.io/wiki/native-transports.html
-        group =  Epoll.isAvailable()? new EpollEventLoopGroup(Runtime.getRuntime().availableProcessors(), threadFactory)
+        group =  Epoll.isAvailable() ? new EpollEventLoopGroup(Runtime.getRuntime().availableProcessors(), threadFactory)
                 : new NioEventLoopGroup(Runtime.getRuntime().availableProcessors(), threadFactory);
     }
 

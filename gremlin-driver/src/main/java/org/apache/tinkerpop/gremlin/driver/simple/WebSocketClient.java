@@ -69,7 +69,7 @@ public class WebSocketClient extends AbstractClient {
                     uri, WebSocketVersion.V13, null, true, EmptyHttpHeaders.INSTANCE, 65536), 10000);
             final MessageSerializer serializer = new GryoMessageSerializerV3d0();
             // Checks and uses Epoll if it is available. ref: http://netty.io/wiki/native-transports.html
-            b.channel(Epoll.isAvailable()? EpollSocketChannel.class : NioSocketChannel.class)
+            b.channel(Epoll.isAvailable() ? EpollSocketChannel.class : NioSocketChannel.class)
                     .handler(new ChannelInitializer<SocketChannel>() {
                         @Override
                         protected void initChannel(final SocketChannel ch) {
