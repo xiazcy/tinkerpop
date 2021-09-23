@@ -1111,7 +1111,8 @@ public final class Cluster {
         public Factory(final int nioPoolSize) {
             final BasicThreadFactory threadFactory = new BasicThreadFactory.Builder().namingPattern("gremlin-driver-loop-%d").build();
             // Checks and uses Epoll if it is available. ref: http://netty.io/wiki/native-transports.html
-            group = Epoll.isAvailable()? new EpollEventLoopGroup(nioPoolSize, threadFactory) : new NioEventLoopGroup(nioPoolSize, threadFactory);
+            group = Epoll.isAvailable() ? new EpollEventLoopGroup(nioPoolSize, threadFactory) : new NioEventLoopGroup(nioPoolSize, threadFactory);
+            logger.info(Epoll.isAvailable() ? "epoll is available, using epoll" : "epoll is unavailable, using NIO.");
         }
 
         Bootstrap createBootstrap() {

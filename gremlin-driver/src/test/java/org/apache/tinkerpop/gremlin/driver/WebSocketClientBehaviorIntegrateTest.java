@@ -279,7 +279,7 @@ public class WebSocketClientBehaviorIntegrateTest {
     }
 
     // A mock client is made here, so we can test the protected field group
-    private class MockClient extends WebSocketClient {
+    private static class MockClient extends WebSocketClient {
         EventLoopGroup getEventLoopGroup() {
             return group;
         }

@@ -28,6 +28,8 @@ import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.apache.tinkerpop.gremlin.driver.message.RequestMessage;
 import org.apache.tinkerpop.gremlin.driver.message.ResponseMessage;
 import org.apache.tinkerpop.gremlin.driver.message.ResponseStatusCode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,12 +42,14 @@ import java.util.function.Consumer;
 public abstract class AbstractClient implements SimpleClient {
     protected final CallbackResponseHandler callbackResponseHandler = new CallbackResponseHandler();
     protected final EventLoopGroup group;
+    protected static final Logger logger = LoggerFactory.getLogger(AbstractClient.class);
 
     public AbstractClient(final String threadPattern) {
         final BasicThreadFactory threadFactory = new BasicThreadFactory.Builder().namingPattern(threadPattern).build();
         // Checks and uses Epoll if it is available. ref: http://netty.io/wiki/native-transports.html
         group =  Epoll.isAvailable() ? new EpollEventLoopGroup(Runtime.getRuntime().availableProcessors(), threadFactory)
                 : new NioEventLoopGroup(Runtime.getRuntime().availableProcessors(), threadFactory);
+        logger.info(Epoll.isAvailable() ? "epoll is available, using epoll" : "epoll is unavailable, using NIO.");
     }
 
     public abstract void writeAndFlush(final RequestMessage requestMessage) throws Exception;
