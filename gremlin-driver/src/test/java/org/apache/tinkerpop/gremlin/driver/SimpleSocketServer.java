@@ -41,8 +41,8 @@ public class SimpleSocketServer {
 
     public Channel start(final ChannelInitializer<SocketChannel> channelInitializer) throws InterruptedException {
         // Checks and uses Epoll if it is available. ref: http://netty.io/wiki/native-transports.html
-        bossGroup = Epoll.isAvailable()? new EpollEventLoopGroup(1) : new NioEventLoopGroup(1);
-        workerGroup =  Epoll.isAvailable()? new EpollEventLoopGroup() : new NioEventLoopGroup();
+        bossGroup = Epoll.isAvailable() ? new EpollEventLoopGroup(1) : new NioEventLoopGroup(1);
+        workerGroup =  Epoll.isAvailable() ? new EpollEventLoopGroup() : new NioEventLoopGroup();
         final ServerBootstrap b = new ServerBootstrap();
         b.group(bossGroup, workerGroup)
                 .channel(Epoll.isAvailable() ? EpollServerSocketChannel.class : NioServerSocketChannel.class)
