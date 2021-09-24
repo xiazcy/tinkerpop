@@ -45,7 +45,7 @@ public class SimpleSocketServer {
         workerGroup =  Epoll.isAvailable()? new EpollEventLoopGroup() : new NioEventLoopGroup();
         final ServerBootstrap b = new ServerBootstrap();
         b.group(bossGroup, workerGroup)
-                .channel(Epoll.isAvailable()? EpollServerSocketChannel.class : NioServerSocketChannel.class)
+                .channel(Epoll.isAvailable() ? EpollServerSocketChannel.class : NioServerSocketChannel.class)
                 .handler(new LoggingHandler(LogLevel.INFO))
                 .childHandler(channelInitializer);
         return b.bind(PORT).sync().channel();
