@@ -47,9 +47,9 @@ public abstract class AbstractClient implements SimpleClient {
     public AbstractClient(final String threadPattern) {
         final BasicThreadFactory threadFactory = new BasicThreadFactory.Builder().namingPattern(threadPattern).build();
         // Checks and uses Epoll if it is available. ref: http://netty.io/wiki/native-transports.html
+        logger.warn(Epoll.isAvailable() ? "epoll is available, using epoll" : "epoll is unavailable, using NIO.");
         group =  Epoll.isAvailable() ? new EpollEventLoopGroup(Runtime.getRuntime().availableProcessors(), threadFactory)
                 : new NioEventLoopGroup(Runtime.getRuntime().availableProcessors(), threadFactory);
-        logger.info(Epoll.isAvailable() ? "epoll is available, using epoll" : "epoll is unavailable, using NIO.");
     }
 
     public abstract void writeAndFlush(final RequestMessage requestMessage) throws Exception;
