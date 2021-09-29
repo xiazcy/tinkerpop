@@ -114,7 +114,8 @@ public class DriverRemoteAcceptor implements RemoteAcceptor {
         } catch (final FileNotFoundException ignored) {
             throw new RemoteException("The 'connect' option must be accompanied by a valid configuration file");
         } catch (NoHostAvailableException nhae) {
-            return "Host was not available - the Gremlin Console is making attempts to reconnect in accordance with the 'reconnectInterval' driver configuration but you may wish to close this remote and investigate the problem directly";
+            return "Host was not available - the Gremlin Console is making attempts to reconnect in accordance with the 'reconnectInterval' " +
+                    "driver configuration but you may wish to close this remote and investigate the problem directly";
         } catch (final Exception ex) {
             throw new RemoteException("Error during 'connect' - " + ex.getMessage(), ex);
         }

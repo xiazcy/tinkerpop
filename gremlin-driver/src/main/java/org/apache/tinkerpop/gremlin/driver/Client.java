@@ -527,8 +527,8 @@ public abstract class Client {
 
             try {
                 CompletableFuture.allOf(cluster.allHosts().stream()
-                                .map(host -> CompletableFuture.runAsync(() -> initializeConnectionSetupForHost.accept(host), hostExecutor))
-                                .toArray(CompletableFuture[]::new))
+                        .map(host -> CompletableFuture.runAsync(() -> initializeConnectionSetupForHost.accept(host), hostExecutor))
+                        .toArray(CompletableFuture[]::new))
                         .join();
             } catch (CompletionException ex) {
                 logger.error("", (ex.getCause() == null) ? ex : ex.getCause());
@@ -578,7 +578,6 @@ public abstract class Client {
 
                 // added a new host to the cluster so let the load-balancer know
                 ClusteredClient.this.cluster.loadBalancingStrategy().onNew(host);
-
             } catch (RuntimeException ex) {
                 throw new RuntimeException(String.format("Could not initialize client for %s.", host), ex);
             }
@@ -591,8 +590,8 @@ public abstract class Client {
             // we will start the re-initialization attempt for each of the unavailable hosts through makeUnavailable()
             try {
                 CompletableFuture.allOf(unavailableHosts.stream()
-                                .map(host -> CompletableFuture.runAsync(() -> host.makeUnavailable(this::tryReInitializeHost), hostExecutor))
-                                .toArray(CompletableFuture[]::new))
+                        .map(host -> CompletableFuture.runAsync(() -> host.makeUnavailable(this::tryReInitializeHost), hostExecutor))
+                        .toArray(CompletableFuture[]::new))
                         .join();
             } catch (CompletionException ex) {
                 logger.error("", (ex.getCause() == null) ? ex : ex.getCause());
@@ -606,7 +605,7 @@ public abstract class Client {
          * as part of a schedule in {@link Host} to periodically try to re-initialize.
          */
         public boolean tryReInitializeHost(final Host host) {
-            logger.warn("Trying to re-initiate host connection pool on {}", host);
+            logger.debug("Trying to re-initiate host connection pool on {}", host);
 
             try {
                 // hosts that don't initialize connection pools will come up as a dead host
@@ -619,7 +618,7 @@ public abstract class Client {
                 host.makeAvailable();
                 return true;
             } catch (Exception ex) {
-                logger.warn("Failed re-initialization attempt on {}", host, ex);
+                logger.debug("Failed re-initialization attempt on {}", host, ex);
                 return false;
             }
         }
