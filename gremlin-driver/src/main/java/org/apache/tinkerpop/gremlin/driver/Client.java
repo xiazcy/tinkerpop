@@ -591,7 +591,7 @@ public abstract class Client {
             // we will start the re-initiation attempt for each of the unavailable hosts through makeUnavailable()
             try {
                 CompletableFuture.allOf(unavailableHosts.stream()
-                                .map(host -> CompletableFuture.runAsync(() -> host.makeUnavailable(this::tryReInitiateHost), hostExecutor))
+                                .map(host -> CompletableFuture.runAsync(() -> host.makeUnavailable(this::tryReInitializeHost), hostExecutor))
                                 .toArray(CompletableFuture[]::new))
                         .join();
             } catch (CompletionException ex) {
@@ -602,10 +602,10 @@ public abstract class Client {
         }
 
         /**
-         * Attempt to re-initiate to the {@link Host} that was previously marked as unavailable.  This method gets called
-         * as part of a schedule in {@link Host} to periodically try to create working re-initiations.
+         * Attempt to re-initialize the {@link Host} that was previously marked as unavailable.  This method gets called
+         * as part of a schedule in {@link Host} to periodically try to re-initialize.
          */
-        public boolean tryReInitiateHost(final Host host) {
+        public boolean tryReInitializeHost(final Host host) {
             logger.warn("Trying to re-initiate host connection pool on {}", host);
 
             try {
