@@ -20,6 +20,8 @@ package org.apache.tinkerpop.gremlin.driver.simple;
 
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.ChannelOption;
+import io.netty.channel.epoll.Epoll;
+import io.netty.channel.epoll.EpollSocketChannel;
 import io.netty.handler.codec.http.EmptyHttpHeaders;
 import org.apache.tinkerpop.gremlin.driver.MessageSerializer;
 import org.apache.tinkerpop.gremlin.driver.handler.WebSocketClientHandler;
@@ -66,7 +68,9 @@ public class WebSocketClient extends AbstractClient {
             final WebSocketClientHandler wsHandler = new WebSocketClientHandler(WebSocketClientHandshakerFactory.newHandshaker(
                     uri, WebSocketVersion.V13, null, true, EmptyHttpHeaders.INSTANCE, 65536), 10000);
             final MessageSerializer serializer = new GryoMessageSerializerV3d0();
-            b.channel(NioSocketChannel.class)
+            // Checks and uses Epoll if it is available. ref: http://netty.io/wiki/native-transports.html
+            logger.info(Epoll.isAvailable() ? "epoll is available, using epoll" : "epoll is unavailable, using NIO.");
+            b.channel(Epoll.isAvailable() ? EpollSocketChannel.class : NioSocketChannel.class)
                     .handler(new ChannelInitializer<SocketChannel>() {
                         @Override
                         protected void initChannel(final SocketChannel ch) {

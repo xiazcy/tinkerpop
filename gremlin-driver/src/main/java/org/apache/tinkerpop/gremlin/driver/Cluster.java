@@ -20,6 +20,9 @@ package org.apache.tinkerpop.gremlin.driver;
 
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.ChannelOption;
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.epoll.Epoll;
+import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslProvider;
@@ -1103,11 +1106,14 @@ public final class Cluster {
     }
 
     static class Factory {
-        private final NioEventLoopGroup group;
+        private final EventLoopGroup group;
 
         public Factory(final int nioPoolSize) {
             final BasicThreadFactory threadFactory = new BasicThreadFactory.Builder().namingPattern("gremlin-driver-loop-%d").build();
-            group = new NioEventLoopGroup(nioPoolSize, threadFactory);
+            // Checks and uses Epoll if it is available. ref: http://netty.io/wiki/native-transports.html
+            System.out.println(Epoll.isAvailable() ? "epoll is available, using epoll" : "epoll is unavailable, using NIO.");
+            logger.warn(Epoll.isAvailable() ? "epoll is available, using epoll" : "epoll is unavailable, using NIO.");
+            group = Epoll.isAvailable() ? new EpollEventLoopGroup(nioPoolSize, threadFactory) : new NioEventLoopGroup(nioPoolSize, threadFactory);
         }
 
         Bootstrap createBootstrap() {

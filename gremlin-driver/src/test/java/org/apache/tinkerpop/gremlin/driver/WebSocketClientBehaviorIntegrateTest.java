@@ -18,6 +18,11 @@
  */
 package org.apache.tinkerpop.gremlin.driver;
 
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.epoll.Epoll;
+import io.netty.channel.epoll.EpollEventLoopGroup;
+import io.netty.channel.nio.NioEventLoopGroup;
+import org.apache.tinkerpop.gremlin.driver.simple.WebSocketClient;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -41,6 +46,7 @@ import static org.hamcrest.core.Is.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class WebSocketClientBehaviorIntegrateTest {
     @Rule
@@ -271,4 +277,22 @@ public class WebSocketClientBehaviorIntegrateTest {
                         .filter(str -> str.contains("Considering new connection on"))
                         .count());
     }
+
+    // A mock client is made here, so we can test the protected field group
+    private static class MockClient extends WebSocketClient {
+        EventLoopGroup getEventLoopGroup() {
+            return group;
+        }
+    }
+
+    @Test
+    public void shouldUseEpollIfAvailable() throws Exception {
+        final MockClient client = new MockClient();
+        if (Epoll.isAvailable()) {
+            assertTrue(client.getEventLoopGroup() instanceof EpollEventLoopGroup);
+        } else {
+            assertTrue(client.getEventLoopGroup() instanceof NioEventLoopGroup);
+        }
+    }
+
 }

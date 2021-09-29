@@ -21,11 +21,15 @@ package org.apache.tinkerpop.gremlin.driver.simple;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.channel.epoll.Epoll;
+import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.apache.tinkerpop.gremlin.driver.message.RequestMessage;
 import org.apache.tinkerpop.gremlin.driver.message.ResponseMessage;
 import org.apache.tinkerpop.gremlin.driver.message.ResponseStatusCode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,10 +42,14 @@ import java.util.function.Consumer;
 public abstract class AbstractClient implements SimpleClient {
     protected final CallbackResponseHandler callbackResponseHandler = new CallbackResponseHandler();
     protected final EventLoopGroup group;
+    protected static final Logger logger = LoggerFactory.getLogger(AbstractClient.class);
 
     public AbstractClient(final String threadPattern) {
         final BasicThreadFactory threadFactory = new BasicThreadFactory.Builder().namingPattern(threadPattern).build();
-        group = new NioEventLoopGroup(Runtime.getRuntime().availableProcessors(), threadFactory);
+        // Checks and uses Epoll if it is available. ref: http://netty.io/wiki/native-transports.html
+        logger.warn(Epoll.isAvailable() ? "epoll is available, using epoll" : "epoll is unavailable, using NIO.");
+        group =  Epoll.isAvailable() ? new EpollEventLoopGroup(Runtime.getRuntime().availableProcessors(), threadFactory)
+                : new NioEventLoopGroup(Runtime.getRuntime().availableProcessors(), threadFactory);
     }
 
     public abstract void writeAndFlush(final RequestMessage requestMessage) throws Exception;
