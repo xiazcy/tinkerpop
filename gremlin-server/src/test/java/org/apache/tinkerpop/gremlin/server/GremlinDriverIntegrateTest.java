@@ -1924,10 +1924,10 @@ public class GremlinDriverIntegrateTest extends AbstractGremlinServerIntegration
                 } catch (Exception ex) {
                     if (ix == 10)
                         fail("Should have eventually succeeded");
-                } finally {
-                    cluster.close();
                 }
             }
+        } finally {
+            cluster.close();
         }
     }
 
