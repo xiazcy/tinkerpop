@@ -588,7 +588,7 @@ public abstract class Client {
             final BasicThreadFactory threadFactory = new BasicThreadFactory.Builder().namingPattern("gremlin-driver-initializer").build();
             final ExecutorService hostExecutor = Executors.newSingleThreadExecutor(threadFactory);
 
-            // we will start the re-initiation attempt for each of the unavailable hosts through makeUnavailable()
+            // we will start the re-initialization attempt for each of the unavailable hosts through makeUnavailable()
             try {
                 CompletableFuture.allOf(unavailableHosts.stream()
                                 .map(host -> CompletableFuture.runAsync(() -> host.makeUnavailable(this::tryReInitializeHost), hostExecutor))
@@ -619,7 +619,7 @@ public abstract class Client {
                 host.makeAvailable();
                 return true;
             } catch (Exception ex) {
-                logger.warn("Failed re-initiation attempt on {}", host, ex);
+                logger.warn("Failed re-initialization attempt on {}", host, ex);
                 return false;
             }
         }
