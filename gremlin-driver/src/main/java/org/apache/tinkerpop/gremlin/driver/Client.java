@@ -532,8 +532,6 @@ public abstract class Client {
                         .join();
             } catch (CompletionException ex) {
                 logger.error("", (ex.getCause() == null) ? ex : ex.getCause());
-            } finally {
-                hostExecutor.shutdown();
             }
 
             // throw an error if there is no host available after initializing connection pool.
@@ -541,13 +539,14 @@ public abstract class Client {
                 throw new NoHostAvailableException();
             }
 
-            // other-wise we will continue on available hosts and try to re-initiate any unavailable hosts in the background
+            // try to re-initiate any unavailable hosts in the background.
             final List<Host> unavailableHosts = cluster.allHosts()
                     .stream().filter(host -> !host.isAvailable()).collect(Collectors.toList());
             if (!unavailableHosts.isEmpty()) {
-                CompletableFuture.runAsync(() -> handleUnavailableHosts(unavailableHosts));
+                CompletableFuture.runAsync(() -> handleUnavailableHosts(unavailableHosts, hostExecutor));
+            } else {
+                hostExecutor.shutdown();
             }
-
         }
 
         /**
@@ -569,25 +568,21 @@ public abstract class Client {
 
         private Consumer<Host> initializeConnectionSetupForHost = host -> {
             try {
-                // hosts that don't initialize connection pools will come up as a dead host
+                // hosts that don't initialize connection pools will come up as a dead host.
                 hostConnectionPools.put(host, new ConnectionPool(host, ClusteredClient.this));
 
-                // hosts are not marked as available at Cluster initialization, so we are marking hosts as available
-                // here if connection pools can be initialized successfully.
+                // hosts are not marked as available at cluster initialization, and are made available here instead.
                 host.makeAvailable();
 
-                // added a new host to the cluster so let the load-balancer know
+                // added a new host to the cluster so let the load-balancer know.
                 ClusteredClient.this.cluster.loadBalancingStrategy().onNew(host);
             } catch (RuntimeException ex) {
                 throw new RuntimeException(String.format("Could not initialize client for %s.", host), ex);
             }
         };
 
-        private void handleUnavailableHosts(List<Host> unavailableHosts) {
-            final BasicThreadFactory threadFactory = new BasicThreadFactory.Builder().namingPattern("gremlin-driver-initializer").build();
-            final ExecutorService hostExecutor = Executors.newSingleThreadExecutor(threadFactory);
-
-            // we will start the re-initialization attempt for each of the unavailable hosts through makeUnavailable()
+        private void handleUnavailableHosts(List<Host> unavailableHosts, ExecutorService hostExecutor) {
+            // start the re-initialization attempt for each of the unavailable hosts through Host.makeUnavailable().
             try {
                 CompletableFuture.allOf(unavailableHosts.stream()
                         .map(host -> CompletableFuture.runAsync(() -> host.makeUnavailable(this::tryReInitializeHost), hostExecutor))

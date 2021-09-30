@@ -1898,7 +1898,6 @@ public class GremlinDriverIntegrateTest extends AbstractGremlinServerIntegration
         } catch (RuntimeException re) {
             // Client would have no active connections to the host, hence it would encounter a timeout
             // trying to find an alive connection to the host.
-            Throwable foo = re.getCause();
             assertThat(re.getCause(), instanceOf(NoHostAvailableException.class));
 
             //
