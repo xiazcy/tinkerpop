@@ -19,6 +19,7 @@
 package org.apache.tinkerpop.gremlin.process.traversal;
 
 import org.apache.tinkerpop.gremlin.util.NumberHelper;
+import org.apache.tinkerpop.gremlin.util.StringStepHelper;
 
 import java.util.Collection;
 import java.util.Map;
@@ -203,6 +204,17 @@ public enum Operator implements BinaryOperator<Object> {
     sumLong {
         public Object apply(final Object a, final Object b) {
             return (long) a + (long) b;
+        }
+    },
+
+    /**
+     * Concatenates two string values.
+     *
+     * @since 3.7.0
+     */
+    concat {
+        public Object apply(final Object a, final Object b) {
+            return StringStepHelper.concat((String) a, (String) b);
         }
     }
 }

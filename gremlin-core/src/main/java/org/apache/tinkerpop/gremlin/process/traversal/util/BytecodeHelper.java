@@ -64,6 +64,8 @@ import org.apache.tinkerpop.gremlin.process.traversal.step.map.AddEdgeStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.map.AddVertexStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.map.CallStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.map.CoalesceStep;
+import org.apache.tinkerpop.gremlin.process.traversal.step.map.ConcatGlobalStep;
+import org.apache.tinkerpop.gremlin.process.traversal.step.map.ConcatLocalStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.map.ConstantStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.map.CountGlobalStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.map.CountLocalStep;
@@ -196,6 +198,7 @@ public final class BytecodeHelper {
             put(GraphTraversal.Symbols.max, Arrays.asList(MaxGlobalStep.class, MaxLocalStep.class));
             put(GraphTraversal.Symbols.min, Arrays.asList(MinGlobalStep.class, MinGlobalStep.class));
             put(GraphTraversal.Symbols.mean, Arrays.asList(MeanGlobalStep.class, MeanLocalStep.class));
+            put(GraphTraversal.Symbols.concat, Arrays.asList(ConcatGlobalStep.class, ConcatLocalStep.class));
             put(GraphTraversal.Symbols.group, Arrays.asList(GroupStep.class, GroupSideEffectStep.class));
             put(GraphTraversal.Symbols.groupCount, Arrays.asList(GroupCountStep.class, GroupCountSideEffectStep.class));
             put(GraphTraversal.Symbols.tree, Arrays.asList(TreeStep.class, TreeSideEffectStep.class));

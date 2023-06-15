@@ -1,0 +1,69 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+@StepClassMap @StepConcat
+Feature: Step - concat()
+
+  @GraphComputerVerificationInjectionNotSupported
+  Scenario: g_injectXnull_a_b_nullX_concat
+    Given the modern graph
+    And the traversal of
+      """
+      g.inject(null, "a", "b", null).concat();
+      """
+    When iterated to list
+    Then the result should be unordered
+      | result |
+      | ab |
+
+  @GraphComputerVerificationInjectionNotSupported
+  Scenario: g_injectXa_bX_concatXlocalX
+    Given the modern graph
+    And using the parameter xx1 defined as "l[null,a,b,null]"
+    And the traversal of
+      """
+      g.inject(xx1).concat(Scope.local);
+      """
+    When iterated to list
+    Then the result should be unordered
+      | result |
+      | ab |
+
+  @GraphComputerVerificationInjectionNotSupported
+  Scenario: g_injectXa_bX_concat_c
+    Given the modern graph
+    And the traversal of
+      """
+      g.inject("a", "b").concat("c");
+      """
+    When iterated to list
+    Then the result should be unordered
+      | result |
+      | abc |
+
+  @GraphComputerVerificationInjectionNotSupported
+  Scenario: g_injectXa_bX_concatXlocal_cX
+    Given the modern graph
+    And using the parameter xx1 defined as "l[null,a,b,null]"
+    And the traversal of
+      """
+      g.inject(xx1).concat(Scope.local, "c");
+      """
+    When iterated to list
+    Then the result should be unordered
+      | result |
+      | abc |

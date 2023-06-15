@@ -80,6 +80,8 @@ import org.apache.tinkerpop.gremlin.process.traversal.step.map.AddVertexStartSte
 import org.apache.tinkerpop.gremlin.process.traversal.step.map.AddVertexStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.map.CallStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.map.CoalesceStep;
+import org.apache.tinkerpop.gremlin.process.traversal.step.map.ConcatGlobalStep;
+import org.apache.tinkerpop.gremlin.process.traversal.step.map.ConcatLocalStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.map.ConstantStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.map.CountGlobalStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.map.CountLocalStep;
@@ -1409,6 +1411,55 @@ public interface GraphTraversal<S, E> extends Traversal<S, E> {
         final CallStep<S,E> step = null == childTraversal ? new CallStep(this.asAdmin(), false, service, params) :
                 new CallStep(this.asAdmin(), false, service, params, childTraversal.asAdmin());
         return this.asAdmin().addStep(step);
+    }
+
+    /**
+     * Concatenate strings.
+     *
+     * @return the traversal with an appended {@link ConcatGlobalStep}.
+     * @see <a href="http://tinkerpop.apache.org/docs/${project.version}/reference/#concat-step" target="_blank">Reference Documentation - Concat Step</a>
+     * @since 3.7.0
+     */
+    public default <E2 extends String> GraphTraversal<S, E2> concat(final Traversal<?, ?> concatTraversal) {
+        this.asAdmin().getBytecode().addStep(Symbols.concat, concatTraversal);
+        final ConcatGlobalStep<String, E2> concat = new ConcatGlobalStep<>(this.asAdmin(), (Traversal<String, E2>) concatTraversal);
+        return this.asAdmin().addStep(concat);
+    }
+
+    /**
+     * Concatenate strings.
+     *
+     * @return the traversal with an appended {@link ConcatGlobalStep}.
+     * @see <a href="http://tinkerpop.apache.org/docs/${project.version}/reference/#concat-step" target="_blank">Reference Documentation - Concat Step</a>
+     * @since 3.7.0
+     */
+    public default <E2 extends String> GraphTraversal<S, E2> concat(String... concatStrings) {
+        this.asAdmin().getBytecode().addStep(Symbols.concat, concatStrings);
+        return this.asAdmin().addStep(new ConcatGlobalStep<>(this.asAdmin(), concatStrings));
+    }
+
+    /**
+     * Concatenate strings.
+     *
+     * @return the traversal with an appended {@link ConcatGlobalStep} or {@link ConcatLocalStep} depending on the {@link Scope}.
+     * @see <a href="http://tinkerpop.apache.org/docs/${project.version}/reference/#concat-step" target="_blank">Reference Documentation - Concat Step</a>
+     * @since 3.7.0
+     */
+    public default <E2 extends String> GraphTraversal<S, E2> concat(final Scope scope, final Traversal<?, ?> concatTraversal) {
+        this.asAdmin().getBytecode().addStep(Symbols.concat, scope, concatTraversal);
+        return this.asAdmin().addStep(scope.equals(Scope.global) ? new ConcatGlobalStep(this.asAdmin(), concatTraversal) : new ConcatLocalStep(this.asAdmin(), concatTraversal));
+    }
+
+    /**
+     * Concatenate strings.
+     *
+     * @return the traversal with an appended {@link ConcatGlobalStep} or {@link ConcatLocalStep} depending on the {@link Scope}.
+     * @see <a href="http://tinkerpop.apache.org/docs/${project.version}/reference/#concat-step" target="_blank">Reference Documentation - Concat Step</a>
+     * @since 3.7.0
+     */
+    public default <E2 extends String> GraphTraversal<S, E2> concat(final Scope scope, String... concatStrings) {
+        this.asAdmin().getBytecode().addStep(Symbols.concat, scope, concatStrings);
+        return this.asAdmin().addStep(scope.equals(Scope.global) ? new ConcatGlobalStep(this.asAdmin(), concatStrings) : new ConcatLocalStep(this.asAdmin(), concatStrings));
     }
 
     ///////////////////// FILTER STEPS /////////////////////
@@ -3426,6 +3477,7 @@ public interface GraphTraversal<S, E> extends Traversal<S, E> {
         public static final String write = "write";
         public static final String call = "call";
         public static final String element = "element";
+        public static final String concat = "concat";
 
         public static final String timeLimit = "timeLimit";
         public static final String simplePath = "simplePath";

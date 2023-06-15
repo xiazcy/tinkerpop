@@ -1715,6 +1715,48 @@ public class TraversalMethodVisitor extends TraversalRootVisitor<GraphTraversal>
                 antlr.tvisitor.visitNestedTraversal(ctx.nestedTraversal()));
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public GraphTraversal visitTraversalMethod_concat_Empty(GremlinParser.TraversalMethod_concat_EmptyContext ctx) {
+        return graphTraversal.concat();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public GraphTraversal visitTraversalMethod_concat_Traversal(GremlinParser.TraversalMethod_concat_TraversalContext ctx) {
+        return graphTraversal.concat(antlr.tvisitor.visitNestedTraversal(ctx.nestedTraversal()));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public GraphTraversal visitTraversalMethod_concat_String(GremlinParser.TraversalMethod_concat_StringContext ctx) {
+        return graphTraversal.concat(GenericLiteralVisitor.getStringLiteralList(ctx.stringLiteralList()));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public GraphTraversal visitTraversalMethod_concat_Scope_Traversal(GremlinParser.TraversalMethod_concat_Scope_TraversalContext ctx) {
+        return graphTraversal.concat(TraversalEnumParser.parseTraversalEnumFromContext(Scope.class, ctx.getChild(2)),
+                antlr.tvisitor.visitNestedTraversal(ctx.nestedTraversal()));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public GraphTraversal visitTraversalMethod_concat_Scope_String(GremlinParser.TraversalMethod_concat_Scope_StringContext ctx) {
+        return graphTraversal.concat(TraversalEnumParser.parseTraversalEnumFromContext(Scope.class, ctx.getChild(2)),
+                GenericLiteralVisitor.getStringLiteralList(ctx.stringLiteralList()));
+    }
+
     public GraphTraversal[] getNestedTraversalList(final GremlinParser.NestedTraversalListContext ctx) {
         return ctx.nestedTraversalExpr().nestedTraversal()
                 .stream()
