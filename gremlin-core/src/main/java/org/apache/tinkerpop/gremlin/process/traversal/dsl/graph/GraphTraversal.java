@@ -1420,10 +1420,9 @@ public interface GraphTraversal<S, E> extends Traversal<S, E> {
      * @see <a href="http://tinkerpop.apache.org/docs/${project.version}/reference/#concat-step" target="_blank">Reference Documentation - Concat Step</a>
      * @since 3.7.0
      */
-    public default <E2 extends String> GraphTraversal<S, E2> concat(final Traversal<?, ?> concatTraversal) {
+    public default GraphTraversal<S, String> concat(final Traversal<?, ?> concatTraversal) {
         this.asAdmin().getBytecode().addStep(Symbols.concat, concatTraversal);
-        final ConcatGlobalStep<String, E2> concat = new ConcatGlobalStep<>(this.asAdmin(), (Traversal<String, E2>) concatTraversal);
-        return this.asAdmin().addStep(concat);
+        return this.asAdmin().addStep(new ConcatGlobalStep<>(this.asAdmin(), concatTraversal));
     }
 
     /**
@@ -1433,7 +1432,7 @@ public interface GraphTraversal<S, E> extends Traversal<S, E> {
      * @see <a href="http://tinkerpop.apache.org/docs/${project.version}/reference/#concat-step" target="_blank">Reference Documentation - Concat Step</a>
      * @since 3.7.0
      */
-    public default <E2 extends String> GraphTraversal<S, E2> concat(String... concatStrings) {
+    public default GraphTraversal<S, String> concat(String... concatStrings) {
         this.asAdmin().getBytecode().addStep(Symbols.concat, concatStrings);
         return this.asAdmin().addStep(new ConcatGlobalStep<>(this.asAdmin(), concatStrings));
     }
@@ -1445,7 +1444,7 @@ public interface GraphTraversal<S, E> extends Traversal<S, E> {
      * @see <a href="http://tinkerpop.apache.org/docs/${project.version}/reference/#concat-step" target="_blank">Reference Documentation - Concat Step</a>
      * @since 3.7.0
      */
-    public default <E2 extends String> GraphTraversal<S, E2> concat(final Scope scope, final Traversal<?, ?> concatTraversal) {
+    public default GraphTraversal<S, String> concat(final Scope scope, final Traversal<?, ?> concatTraversal) {
         this.asAdmin().getBytecode().addStep(Symbols.concat, scope, concatTraversal);
         return this.asAdmin().addStep(scope.equals(Scope.global) ? new ConcatGlobalStep(this.asAdmin(), concatTraversal) : new ConcatLocalStep(this.asAdmin(), concatTraversal));
     }
@@ -1457,7 +1456,7 @@ public interface GraphTraversal<S, E> extends Traversal<S, E> {
      * @see <a href="http://tinkerpop.apache.org/docs/${project.version}/reference/#concat-step" target="_blank">Reference Documentation - Concat Step</a>
      * @since 3.7.0
      */
-    public default <E2 extends String> GraphTraversal<S, E2> concat(final Scope scope, String... concatStrings) {
+    public default GraphTraversal<S, String> concat(final Scope scope, String... concatStrings) {
         this.asAdmin().getBytecode().addStep(Symbols.concat, scope, concatStrings);
         return this.asAdmin().addStep(scope.equals(Scope.global) ? new ConcatGlobalStep(this.asAdmin(), concatStrings) : new ConcatLocalStep(this.asAdmin(), concatStrings));
     }

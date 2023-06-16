@@ -18,20 +18,22 @@
 @StepClassMap @StepConcat
 Feature: Step - concat()
 
+  #TODO - Gherkins unfortunately doesn't allow checking for empty strings, either pass null through or provide work around in test definition
   @GraphComputerVerificationInjectionNotSupported
-  Scenario: g_injectXnull_a_b_nullX_concat
+  Scenario: g_injectXa_bX_concat
     Given the modern graph
     And the traversal of
       """
-      g.inject(null, "a", "b", null).concat();
+      g.inject("a", "b").concat();
       """
     When iterated to list
     Then the result should be unordered
       | result |
-      | ab |
+      | a |
+      | b |
 
   @GraphComputerVerificationInjectionNotSupported
-  Scenario: g_injectXa_bX_concatXlocalX
+  Scenario: g_injectXnull_a_b_nullX_concatXlocalX
     Given the modern graph
     And using the parameter xx1 defined as "l[null,a,b,null]"
     And the traversal of
@@ -44,7 +46,7 @@ Feature: Step - concat()
       | ab |
 
   @GraphComputerVerificationInjectionNotSupported
-  Scenario: g_injectXa_bX_concat_c
+  Scenario: g_injectXa_bX_concat_XcX
     Given the modern graph
     And the traversal of
       """
@@ -53,12 +55,13 @@ Feature: Step - concat()
     When iterated to list
     Then the result should be unordered
       | result |
-      | abc |
+      | ac |
+      | bc |
 
   @GraphComputerVerificationInjectionNotSupported
   Scenario: g_injectXa_bX_concatXlocal_cX
     Given the modern graph
-    And using the parameter xx1 defined as "l[null,a,b,null]"
+    And using the parameter xx1 defined as "l[a,b]"
     And the traversal of
       """
       g.inject(xx1).concat(Scope.local, "c");
@@ -67,3 +70,58 @@ Feature: Step - concat()
     Then the result should be unordered
       | result |
       | abc |
+
+  @GraphComputerVerificationInjectionNotSupported
+  Scenario: g_injectXa_b_cX_concat_d
+    Given the modern graph
+    And using the parameter xx1 defined as "l[a,b]"
+    And the traversal of
+      """
+      g.inject(xx1,"c").concat("d");
+      """
+    When iterated to list
+    Then the traversal will raise an error with message containing text of "String concat() can only take string as argument"
+
+  @GraphComputerVerificationInjectionNotSupported
+  Scenario: g_injectXa_b_cX_concatXlocal_dX
+    Given the modern graph
+    And using the parameter xx1 defined as "l[a,b]"
+    And the traversal of
+      """
+      g.inject(xx1,"c").concat(Scope.local, "d");
+      """
+    When iterated to list
+    Then the result should be unordered
+      | result |
+      | abd |
+      | cd |
+
+  Scenario: g_V_hasLabel_value_concat_X_X_concat_XpersonX
+    Given the modern graph
+    And the traversal of
+      """
+      g.V().hasLabel("person").values("name").concat(" ").concat("person")
+      """
+    When iterated to list
+    Then the result should be unordered
+      | result |
+      | marko person |
+      | vadas person |
+      | josh person |
+      | peter person |
+
+  Scenario: g_V_hasLabel_value_concat_Xlocal__X_concat_Xlocal_personX
+    Given the modern graph
+    And the traversal of
+      """
+      g.V().hasLabel("person").values("name").concat(Scope.local, " ").concat(Scope.local, "person")
+      """
+    When iterated to list
+    Then the result should be unordered
+      | result |
+      | marko person |
+      | vadas person |
+      | josh person |
+      | peter person |
+
+    #TODO - add additional tests with modern graph

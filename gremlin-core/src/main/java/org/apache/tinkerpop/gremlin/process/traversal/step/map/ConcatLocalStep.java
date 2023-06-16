@@ -20,9 +20,9 @@ package org.apache.tinkerpop.gremlin.process.traversal.step.map;
 
 import org.apache.tinkerpop.gremlin.process.traversal.Traversal;
 import org.apache.tinkerpop.gremlin.process.traversal.Traverser;
+import org.apache.tinkerpop.gremlin.process.traversal.step.TraversalParent;
 import org.apache.tinkerpop.gremlin.process.traversal.traverser.TraverserRequirement;
 import org.apache.tinkerpop.gremlin.process.traversal.util.FastNoSuchElementException;
-import org.apache.tinkerpop.gremlin.util.StringStepHelper;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import java.util.Collections;
@@ -32,10 +32,11 @@ import java.util.Set;
 /**
  * Implementation for the {@code concat()} step
  */
-public class ConcatLocalStep<E extends String , S extends Iterable<E>> extends ScalarMapStep<S, String> {
+public class ConcatLocalStep<S, E> extends ScalarMapStep<S, String> implements TraversalParent {
 
-    protected String[] concatStrings;
-    private Traversal.Admin<S , E> concatTraversal;
+    private String[] concatStrings;
+//    private Traversal.Admin<S , E> concatTraversal;
+    private String traversalResult;
 
     /**
      * String data types or array, if local scope is used. If a non-string traverser,
@@ -49,37 +50,57 @@ public class ConcatLocalStep<E extends String , S extends Iterable<E>> extends S
 
     public ConcatLocalStep(Traversal.Admin traversal, final Traversal<S, E> concatTraversal) {
         super(traversal);
-        this.concatTraversal = concatTraversal.asAdmin();
+
+        // currently we are concatenating all traversal result of child traversers into one string,
+        // need to consider if we need return multiple results per child traverser:
+        // e.g. should the results of g.inject("a", "b").concat(_.inject("c","d))) be
+        // [acd, bcd] or [ac, ad, bc, bd], currently it's the former. Not entirely sure how the latter will work as
+        // we will need loop the map function base on the number of traversers from the argument
+        this.traversalResult = processTraversal(concatTraversal.asAdmin());
     }
 
     @Override
-    protected E map(final Traverser.Admin<S> traverser) {
+    protected String map(final Traverser.Admin<S> traverser) {
+        // all null values are skipped during appending
+        final StringBuilder sb = new StringBuilder();
         final Iterator<E> iterator = IteratorUtils.asIterator(traverser.get());
         if (iterator.hasNext()) {
-            // forward the iterator to the first non-null or return null
-            String result = untilNonNull(iterator);
             while (iterator.hasNext()) {
-                result = StringStepHelper.concat(result, iterator.next());
-            }
-            while (null != this.concatTraversal && this.concatTraversal.hasNext()) {
-                result = StringStepHelper.concat(result, this.concatTraversal.next());
-            }
-            if (null != this.concatStrings) {
-                for (final String s : this.concatStrings) {
-                    result = StringStepHelper.concat(result, s);
+                E result = iterator.next();
+                if (null != result) {
+                    // local scope throws when items in the array isn't a string
+                    if (!(result instanceof String)) {
+                        throw new IllegalArgumentException(
+                                String.format("String concat() local scope can only take string as argument in arrays, encountered %s", result.getClass()));
+                    }
+                    sb.append(result);
                 }
             }
-            return (E) result;
+
+            if (null != this.traversalResult) sb.append(this.traversalResult);
+
+            if (null != this.concatStrings) {
+                for (final String s : this.concatStrings) {
+                    if (null != s) sb.append(s);
+                }
+            }
+            return sb.toString();
         }
         throw FastNoSuchElementException.instance();
     }
 
-    private E untilNonNull(final Iterator<E> itty) {
-        E result = null;
-        while (itty.hasNext() && null == result) {
-            result = itty.next();
+    private String processTraversal(final Traversal.Admin<S , E> concatTraverser) {
+        final StringBuilder sb = new StringBuilder();
+        if (null != concatTraverser) {
+            while (concatTraverser.hasNext()) {
+                // TODO check result for type - should we allow list of strings in parameter for local scope?
+                E result = concatTraverser.next();
+                if (null != result) {
+                    sb.append(result);
+                }
+            }
         }
-        return result;
+        return sb.toString();
     }
 
     @Override

@@ -32,9 +32,10 @@ import java.util.List;
 import static org.apache.tinkerpop.gremlin.LoadGraphWith.GraphData.MODERN;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 @RunWith(GremlinProcessRunner.class)
-public abstract class ConcatTest  extends AbstractGremlinProcessTest {
+public abstract class ConcatTest extends AbstractGremlinProcessTest {
 
     public abstract Traversal<String, String> get_g_injectXnull_a_b_nullX_concat();
 
@@ -45,8 +46,12 @@ public abstract class ConcatTest  extends AbstractGremlinProcessTest {
     public void g_injectXnull_a_b_nullX_concat() {
         final Traversal<String, String> traversal = get_g_injectXnull_a_b_nullX_concat();
         printTraversalForm(traversal);
-        final String concatenated = traversal.next();
-        assertEquals("ab", concatenated);
+        String concatenated = traversal.next();
+        assertEquals("a", concatenated);
+        assertTrue(traversal.hasNext());
+        concatenated = traversal.next();
+        // TODO - currently null is returned as empty string, would likely need to propagate null through
+        assertEquals("", concatenated);
         assertFalse(traversal.hasNext());
     }
 
@@ -63,7 +68,7 @@ public abstract class ConcatTest  extends AbstractGremlinProcessTest {
     public static class Traversals extends ConcatTest {
         @Override
         public Traversal<String, String> get_g_injectXnull_a_b_nullX_concat() {
-            return g.inject(null, "a", "b", null).concat();
+            return g.inject("a", null).concat();
         }
 
         @Override

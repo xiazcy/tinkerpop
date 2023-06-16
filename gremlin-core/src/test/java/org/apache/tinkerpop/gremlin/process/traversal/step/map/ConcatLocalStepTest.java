@@ -41,12 +41,27 @@ public class ConcatLocalStepTest extends StepTest {
 
     @Test
     public void testReturnTypes() {
-        assertEquals("whatisthis", __.__("what").concat(Scope.local, __.__("is", "this")).next());
-        assertEquals("thisisatest", __.__("this").concat(Scope.local, "is", "a", "test").next());
-        assertEquals("thisisatest", __.__(new ArrayList<>(Arrays.asList("this", "is", "a", "test"))).concat(Scope.local).next());
+        assertEquals("abc", __.__("a").concat(Scope.local, __.__("b", "c")).next());
+        assertEquals("abcd", __.__("a").concat(Scope.local, "b", "c", "d").next());
+        assertEquals("abcd", __.__(Arrays.asList("a", "b", "c", "d")).concat(Scope.local).next());
+        assertEquals("bd", __.__(Arrays.asList(null, "b", null, "d")).concat(Scope.local).next());
         // Each traverser in inject() step is concatenated with the arguments to concat individual in local scope
-        assertArrayEquals(new String[]{"whatatest", "isatest", "this?atest"},
-                __.__("what", "is", new ArrayList<>(Arrays.asList("this","?"))).concat(Scope.local, "a", "test").toList().toArray());
-        // a check for non-string elements
+        assertArrayEquals(new String[]{"aef", "bef", "cdef"},
+                __.__("a", "b", Arrays.asList("c","d")).concat(Scope.local, "e", "f").toList().toArray());
+
+        // Traverser results from the argument are concatenated
+        assertArrayEquals(new String[]{"aef", "bef", "cdef"},
+                __.__("a", "b", Arrays.asList("c","d")).concat(Scope.local, __.__("e","f")).toList().toArray());
     }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void shouldThrowWithIncomingInteger() {
+        __.__(1).concat(Scope.local, "a", "b").next();
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void shouldThrowWithIncomingIntegerInArray() {
+        __.__(Arrays.asList("a", 1)).concat(Scope.local, "b", "c").next();
+    }
+
 }

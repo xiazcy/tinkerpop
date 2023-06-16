@@ -23,11 +23,11 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.process.traversal.step.StepTest;
 import org.junit.Test;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
 public class ConcatGlobalStepTest extends StepTest {
@@ -39,11 +39,19 @@ public class ConcatGlobalStepTest extends StepTest {
 
     @Test
     public void testReturnTypes() {
-        assertEquals("whatisthis", __.__("what").concat(__.__("is", "this")).next());
-        assertEquals("thisisatest", __.__("this").concat("is", "a", "test").next());
-        assertEquals("thisisatest", __.__("this", "is", "a", "test").concat().next());
-        // strings in list should be processed and concatenated as well
-        assertEquals("whatisthis?atest", __.__("what", "is", new ArrayList<>(Arrays.asList("this","?"))).concat(__.__("a", "test")).next());
-        // a check for non-string elements
+        assertEquals("abc", __.__("a").concat(__.__("b", "c")).next());
+        assertEquals("abcd", __.__("a").concat("b", "c", "d").next());
+        assertArrayEquals(new String[]{"a", "b", "c", "d"},
+                __.__("a", "b", "c", "d").concat().toList().toArray());
+        assertArrayEquals(new String[]{"ade", "bde", "cde"},
+                __.__("a", "b", "c").concat("d", "e").toList().toArray());
+        assertArrayEquals(new String[]{"abc", "bbc"},
+                __.__("a", "b").concat(__.__("b", "c")).toList().toArray());
     }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void shouldThrowWithIncomingArrayList() {
+        __.__(Arrays.asList("a", "b", "c")).concat("d").next();
+    }
+
 }

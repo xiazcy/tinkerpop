@@ -18,76 +18,84 @@
  */
 package org.apache.tinkerpop.gremlin.process.traversal.step.map;
 
-import org.apache.tinkerpop.gremlin.process.traversal.Operator;
 import org.apache.tinkerpop.gremlin.process.traversal.Traversal;
 import org.apache.tinkerpop.gremlin.process.traversal.Traverser;
-import org.apache.tinkerpop.gremlin.process.traversal.step.util.ReducingBarrierStep;
+import org.apache.tinkerpop.gremlin.process.traversal.step.TraversalParent;
 import org.apache.tinkerpop.gremlin.process.traversal.traverser.TraverserRequirement;
-import org.apache.tinkerpop.gremlin.util.NumberHelper;
-import org.apache.tinkerpop.gremlin.util.StringStepHelper;
+import org.apache.tinkerpop.gremlin.process.traversal.util.FastNoSuchElementException;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
-import java.util.EnumSet;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
-import java.util.function.BinaryOperator;
 
-public class ConcatGlobalStep<S extends String, E extends String> extends ReducingBarrierStep<S, E> {
+public class ConcatGlobalStep<S, E> extends ScalarMapStep<S, String> implements TraversalParent {
 
-    protected String[] concatStrings;
-    private Traversal.Admin<S, E> concatTraversal;
+    private String[] concatStrings;
+    //    private Traversal.Admin<S , E> concatTraversal;
+    private String traversalResult;
 
-    private static final Set<TraverserRequirement> REQUIREMENTS = EnumSet.of(TraverserRequirement.OBJECT);
     public ConcatGlobalStep(Traversal.Admin traversal, final String... concatStrings) {
         super(traversal);
         this.concatStrings = concatStrings;
-        this.setReducingBiOperator((BinaryOperator) Operator.concat);
     }
 
     public ConcatGlobalStep(Traversal.Admin traversal, final Traversal<S, E> concatTraversal) {
         super(traversal);
-        this.concatTraversal = concatTraversal.asAdmin();
-        this.setReducingBiOperator((BinaryOperator) Operator.concat);
+
+        // Currently we are concatenating results of all traversers from incoming traversal into one string,
+        // need to consider if we need return multiple results per traverser:
+        // e.g. should the results of g.inject("a", "b").concat(__.inject("c","d))) be
+        // [acd, bcd] or [ac, ad, bc, bd], currently it's the former. Not entirely sure how the latter will work as
+        // we will need loop the map function base on the number of traversers from the argument
+        this.traversalResult = processTraversal(concatTraversal.asAdmin());
     }
 
     @Override
-    public E projectTraverser(Traverser.Admin<S> traverser) {
+    protected String map(Traverser.Admin<S> traverser) {
+        // global scope throws when incoming traverser isn't a string
+        if (null != traverser.get() && !(traverser.get() instanceof String)) {
+            throw new IllegalArgumentException(
+                    String.format("String concat() can only take string as argument, encountered %s", traverser.get().getClass()));
+        }
+        // all null values are skipped during appending
+        final StringBuilder sb = new StringBuilder();
         final Iterator<E> iterator = IteratorUtils.asIterator(traverser.get());
-        String result = null;
         if (iterator.hasNext()) {
             while (iterator.hasNext()) {
-                result = StringStepHelper.concat(result, iterator.next());
+                E result = iterator.next();
+                if (null != result) {
+                    sb.append(result);
+                }
             }
+            // TODO potential refactoring of duplicated code into helper
+            if (null != this.traversalResult) sb.append(this.traversalResult);
+
+            if (null != this.concatStrings) {
+                for (final String s : this.concatStrings) {
+                    if (null != s) sb.append(s);
+                }
+            }
+            // TODO account for null cases
+            return sb.toString();
         }
-        return null == traverser.get() ? null : (E) result;
+        throw FastNoSuchElementException.instance();
     }
 
-    @Override
-    public E generateFinalResult(final E concatenatedString) {
-        String result = concatenatedString;
-        while (null != this.concatTraversal && this.concatTraversal.hasNext()) {
-            result = StringStepHelper.concat(result, this.concatTraversal.next());
-        }
-        if (null != this.concatStrings) {
-            for (final String s : this.concatStrings) {
-                result = StringStepHelper.concat(result, s);
+    private String processTraversal(final Traversal.Admin<S , E> concatTraverser) {
+        final StringBuilder sb = new StringBuilder();
+        if (null != concatTraverser) {
+            while (concatTraverser.hasNext()) {
+                // TODO check result for type - should we allow list of strings for traversal passed through parameter?
+                E result = concatTraverser.next();
+                if (null != result) sb.append(result);
             }
         }
-        return (E) result;
-    }
-
-    private E untilNonNull(final Iterator<E> itty) {
-        E result = null;
-        while (itty.hasNext() && null == result) {
-            result = itty.next();
-        }
-        return result;
+        return sb.toString();
     }
 
     @Override
     public Set<TraverserRequirement> getRequirements() {
-        return REQUIREMENTS;
+        return Collections.singleton(TraverserRequirement.OBJECT);
     }
-
-
 }
