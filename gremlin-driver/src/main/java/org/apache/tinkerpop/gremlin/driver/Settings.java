@@ -91,9 +91,9 @@ public final class Settings {
     public boolean enableUserAgentOnConnect = true;
 
     /**
-     * Toggles if result from server is bulked. Default is false.
+     * Toggles if result from server is bulked. Default is true.
      */
-    public boolean enableBulkedResult = false;
+    public boolean enableBulkedResult = true;
 
     /**
      * Read configuration from a file into a new {@link Settings} object.

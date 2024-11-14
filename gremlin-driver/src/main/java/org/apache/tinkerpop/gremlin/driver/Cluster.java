@@ -513,7 +513,7 @@ public final class Cluster {
         private long connectionSetupTimeoutMillis = Connection.CONNECTION_SETUP_TIMEOUT_MILLIS;
         private long idleConnectionTimeoutMillis = Connection.CONNECTION_IDLE_TIMEOUT_MILLIS;
         private boolean enableUserAgentOnConnect = true;
-        private boolean enableBulkedResult = false;
+        private boolean enableBulkedResult = true;
 
         private Builder() {
             addInterceptor(SERIALIZER_INTERCEPTOR_NAME,

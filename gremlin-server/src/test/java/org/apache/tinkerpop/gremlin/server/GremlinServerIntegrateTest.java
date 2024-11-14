@@ -991,8 +991,8 @@ public class GremlinServerIntegrateTest extends AbstractGremlinServerIntegration
     }
 	
 	@Test
-    public void shouldEnableBulkedResultWithClusterOptions() {
-        final Cluster cluster = TestClientFactory.build().enableBulkedResult(true).create();
+    public void shouldDisableBulkedResultWithRequestOptions() {
+        final Cluster cluster = TestClientFactory.build().create();
         try {
             final GraphTraversalSource g = traversal().with(DriverRemoteConnection.using(cluster));
             final List resultBulked = g.with("language", "gremlin-lang").inject(1, 2, 3, 2, 1).toList();
@@ -1016,7 +1016,7 @@ public class GremlinServerIntegrateTest extends AbstractGremlinServerIntegration
 
     @Test
     public void shouldEnableBulkedResultWithRequestOptions() {
-        final Cluster cluster = TestClientFactory.build().create();
+        final Cluster cluster = TestClientFactory.build().enableBulkedResult(false).create();
         try {
             final GraphTraversalSource g = traversal().with(DriverRemoteConnection.using(cluster));
             final List result = g.inject(1, 2, 3, 2, 1).toList();
